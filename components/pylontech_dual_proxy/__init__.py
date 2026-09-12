@@ -1,6 +1,6 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
-from esphome.components import uart, sensor, binary_sensor, text_sensor, number
+from esphome.components import uart, sensor, binary_sensor, text_sensor, number, switch
 from esphome.const import CONF_ID
 
 pylontech_dual_proxy_ns = cg.esphome_ns.namespace("esphome::pylontech_dual_proxy")
@@ -74,6 +74,8 @@ CONF_MODULE_SERIAL_UPDATE_INTERVAL = "module_serial_update_interval"
 CONF_FIRMWARE_INFO_UPDATE_INTERVAL = "firmware_info_update_interval"
 CONF_LINK_TIMEOUT = "link_timeout"
 CONF_ONLINE = "online"
+CONF_PUBLISH_RAW_FRAMES = "publish_raw_frames"
+CONF_PUBLISH_DECODED_REPLIES = "publish_decoded_replies"
 
 SENSOR_KEYS_SCHEMA = cv.Schema(
     {
@@ -81,6 +83,8 @@ SENSOR_KEYS_SCHEMA = cv.Schema(
         cv.Optional(CONF_RESPONSE_TIMEOUT, default="1500ms"): cv.positive_time_period_milliseconds,
         cv.Optional(CONF_LINK_TIMEOUT, default="60s"): cv.positive_time_period_milliseconds,
         cv.Optional(CONF_ONLINE): cv.use_id(binary_sensor.BinarySensor),
+        cv.Optional(CONF_PUBLISH_RAW_FRAMES): cv.use_id(switch.Switch),
+        cv.Optional(CONF_PUBLISH_DECODED_REPLIES): cv.use_id(switch.Switch),
         cv.Optional(CONF_STATE_OF_CHARGE): cv.use_id(sensor.Sensor),
         cv.Optional(CONF_VOLTAGE): cv.use_id(sensor.Sensor),
         cv.Optional(CONF_CURRENT): cv.use_id(sensor.Sensor),
@@ -210,6 +214,10 @@ async def to_code(config):
             cg.add(var.set_battery_discharging_sensor((await cg.get_variable(conf[CONF_BATTERY_DISCHARGING]))))
         if CONF_ONLINE in conf:
             cg.add(var.set_online_sensor((await cg.get_variable(conf[CONF_ONLINE]))))
+        if CONF_PUBLISH_RAW_FRAMES in conf:
+            cg.add(var.set_publish_raw_frames_switch((await cg.get_variable(conf[CONF_PUBLISH_RAW_FRAMES]))))
+        if CONF_PUBLISH_DECODED_REPLIES in conf:
+            cg.add(var.set_publish_decoded_replies_switch((await cg.get_variable(conf[CONF_PUBLISH_DECODED_REPLIES]))))
 
         if CONF_TOTAL_VOLTAGE_HIGH_ALARM in conf:
             cg.add(var.set_total_voltage_high_alarm((await cg.get_variable(conf[CONF_TOTAL_VOLTAGE_HIGH_ALARM]))))

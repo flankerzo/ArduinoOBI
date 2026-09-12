@@ -18,7 +18,7 @@ external_components:
   # GitHub fallback only for release installs. Uncomment this block after
   # pushing a tested revision to main; keep the local source above for VS Code
   # development.
-  # - source: github://flankerzo/JK-BMS-Dual-Pylontech-Proxy@main
+  # - source: github://flankerzo/pylontech-dual-router@main
   #   components: [pylontech_dual_proxy]
 
 wifi:
@@ -82,6 +82,8 @@ pylontech_dual_proxy:
     response_timeout: 1500ms
     link_timeout: 60s
     online: battery_online
+    publish_raw_frames: publish_battery_raw_frames
+    publish_decoded_replies: publish_battery_decoded_replies
     cache_ttl: 2500ms
     update_timeout: 60s
     state_of_charge: battery_soc
@@ -140,6 +142,21 @@ pylontech_dual_proxy:
 # Set these live from Home Assistant, in seconds. The global control applies to
 # all commands; per-command controls use -1 to inherit it. Zero means every
 # received response. Alarms CID44/CID62 are always immediate.
+switch:
+  # Text diagnostics only. These switches do not affect UART forwarding,
+  # battery communication, console logs, or normal HA sensor values.
+  - platform: template
+    id: publish_battery_raw_frames
+    name: "Publish Battery Raw Frames"
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+
+  - platform: template
+    id: publish_battery_decoded_replies
+    name: "Publish Battery Decoded Replies"
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+
 number:
   - platform: template
     id: ha_update_interval
@@ -436,29 +453,24 @@ binary_sensor:
     id: battery_online
     name: "Battery Online"
     device_class: connectivity
-    update_interval: never
 
   - platform: template
     id: inverter_1_online
     name: "Inverter 1 Online"
     device_class: connectivity
-    update_interval: never
 
   - platform: template
     id: inverter_2_online
     name: "Inverter 2 Online"
     device_class: connectivity
-    update_interval: never
 
   - platform: template
     id: battery_charging
     name: "Battery Charging"
-    update_interval: never
 
   - platform: template
     id: battery_discharging
     name: "Battery Discharging"
-    update_interval: never
 
 text_sensor:
   - platform: template

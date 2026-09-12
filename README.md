@@ -1,4 +1,4 @@
-# Pylontech Dual Proxy
+# Pylontech Dual Router
 
 
 
@@ -28,6 +28,8 @@ The custom component is under:
 - returns a matched reply only to the inverter that requested it
 - forwards unmatched, valid battery frames to both inverter UARTs as unsolicited events
 - logs raw Pylontech frames for diagnostics
+- has HA switches for optional text diagnostics: raw frames are off by default;
+  decoded reply text is on by default and can be disabled independently
 - exposes Battery, Inverter 1, and Inverter 2 connectivity binary sensors;
   each is online after a valid received frame and offline after its configured
   `link_timeout` (60 seconds in the example)

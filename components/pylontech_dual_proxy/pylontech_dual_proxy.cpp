@@ -132,7 +132,9 @@ void PylontechDualProxy::update_link_status_() {
 }
 
 void PylontechDualProxy::publish_decoded_response_(const std::string &request_cid2, const std::string &info) {
-  if (last_battery_snapshot_sensor_ == nullptr) return;
+  if (last_battery_snapshot_sensor_ == nullptr ||
+      (publish_decoded_replies_switch_ != nullptr && !publish_decoded_replies_switch_->state))
+    return;
 
   // The request CID2 identifies a normal reply (whose CID2 is always 00).
   // This diagnostic text deliberately does not alter a routed byte.
@@ -402,7 +404,9 @@ void PylontechDualProxy::read_battery_frames_() {
           continue;
         }
         mark_link_active_();
-        if (last_battery_frame_sensor_ != nullptr) last_battery_frame_sensor_->publish_state(response);
+        if (last_battery_frame_sensor_ != nullptr &&
+            (publish_raw_frames_switch_ == nullptr || publish_raw_frames_switch_->state))
+          last_battery_frame_sensor_->publish_state(response);
         last_battery_response_ = response;
         log_raw_frame_("battery->router", response);
         // The working inverter/emulator capture shows requests with CID2 61/63

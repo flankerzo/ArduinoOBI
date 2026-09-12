@@ -11,6 +11,7 @@
 #include "esphome/components/sensor/sensor.h"
 #include "esphome/components/text_sensor/text_sensor.h"
 #include "esphome/components/number/number.h"
+#include "esphome/components/switch/switch.h"
 #ifdef USE_BINARY_SENSOR
 #include "esphome/components/binary_sensor/binary_sensor.h"
 #endif
@@ -60,6 +61,8 @@ class PylontechDualProxy : public Component, public uart::UARTDevice {
   void set_battery_port(bool battery_port) { this->is_battery_port_ = battery_port; }
   void set_response_timeout(uint32_t timeout) { this->response_timeout_ms_ = timeout; }
   void set_link_timeout(uint32_t timeout) { this->link_timeout_ms_ = timeout; }
+  void set_publish_raw_frames_switch(switch_::Switch *value) { this->publish_raw_frames_switch_ = value; }
+  void set_publish_decoded_replies_switch(switch_::Switch *value) { this->publish_decoded_replies_switch_ = value; }
   void set_ha_update_interval_number(number::Number *number) { this->ha_update_interval_number_ = number; }
   void set_gsad_update_interval_number(number::Number *number) { this->gsad_update_interval_number_ = number; }
   void set_gscd_limits_update_interval_number(number::Number *number) { this->gscd_limits_update_interval_number_ = number; }
@@ -282,6 +285,8 @@ class PylontechDualProxy : public Component, public uart::UARTDevice {
   binary_sensor::BinarySensor *battery_charging_sensor_{nullptr};
   binary_sensor::BinarySensor *battery_discharging_sensor_{nullptr};
   binary_sensor::BinarySensor *online_sensor_{nullptr};
+  switch_::Switch *publish_raw_frames_switch_{nullptr};
+  switch_::Switch *publish_decoded_replies_switch_{nullptr};
 
   static SharedBatterySnapshot shared_snapshot_;
 };
