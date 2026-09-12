@@ -1,5 +1,7 @@
 #include "pylontech_uart_tap.h"
 
+#include <cstdio>
+
 #include "esphome/core/log.h"
 
 namespace esphome {
@@ -39,8 +41,15 @@ void PylontechUartTap::capture_for_log_(uint8_t byte) {
   }
   if (c != '\r') return;
 
-  ESP_LOGD(TAG, "%s: %s", this->tap_name_.c_str(), this->frame_buffer_.c_str());
-  if (this->last_frame_sensor_ != nullptr) this->last_frame_sensor_->publish_state(this->frame_buffer_);
+  this->frame_counter_++;
+  ESP_LOGD(TAG, "%s frame #%lu: %s", this->tap_name_.c_str(),
+           static_cast<unsigned long>(this->frame_counter_), this->frame_buffer_.c_str());
+  if (this->last_frame_sensor_ != nullptr) {
+    char prefix[48];
+    snprintf(prefix, sizeof(prefix), "%s #%lu: ", this->tap_name_.c_str(),
+             static_cast<unsigned long>(this->frame_counter_));
+    this->last_frame_sensor_->publish_state(std::string(prefix) + this->frame_buffer_);
+  }
   this->frame_buffer_.clear();
 }
 

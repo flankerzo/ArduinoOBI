@@ -26,6 +26,7 @@ class PylontechUartTap : public Component, public uart::UARTDevice {
   PylontechUartTap *peer_{nullptr};
   std::string tap_name_{"uart"};
   std::string frame_buffer_;
+  uint32_t frame_counter_{0};
   text_sensor::TextSensor *last_frame_sensor_{nullptr};
 };
 

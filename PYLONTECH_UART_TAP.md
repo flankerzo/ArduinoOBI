@@ -6,8 +6,11 @@ every byte received on either side is immediately transmitted unchanged to the
 other side.
 
 The debug log labels complete ASCII Pylontech frames as either `inverter ->
-battery` or `battery -> inverter`. It does not use JK Modbus, modify addresses,
-validate/recalculate checksums, create responses, or emulate a battery.
+battery` or `battery -> inverter`, and gives each direction its own increasing
+frame number (for example, `inverter -> battery frame #17`). The number exists
+only in the ESPHome log; it is never added to the wire message. The tap does
+not use JK Modbus, modify addresses, validate/recalculate checksums, create
+responses, or emulate a battery.
 
 Connect only one inverter for this capture. Keep the existing direct inverter
 to BMS session otherwise unchanged, then place the ESP32 bridge inline using
