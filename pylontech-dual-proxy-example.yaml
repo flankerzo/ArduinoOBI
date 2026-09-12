@@ -15,8 +15,10 @@ external_components:
     components:
       - pylontech_dual_proxy
 
-  # GitHub fallback only for release installs:
-  # - source: github://flankerzo/Pylontech-Dual-Proxy@main
+  # GitHub fallback only for release installs. Uncomment this block after
+  # pushing a tested revision to main; keep the local source above for VS Code
+  # development.
+  # - source: github://flankerzo/JK-BMS-Dual-Pylontech-Proxy@main
   #   components: [pylontech_dual_proxy]
 
 wifi:

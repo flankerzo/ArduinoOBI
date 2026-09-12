@@ -17,6 +17,11 @@ external_components:
       path: ./components
     components: [pylontech_uart_tap]
 
+  # GitHub fallback for a committed release. Leave it commented while editing
+  # this workspace in VS Code.
+  # - source: github://flankerzo/JK-BMS-Dual-Pylontech-Proxy@main
+  #   components: [pylontech_uart_tap]
+
 wifi:
   ssid: !secret wifi_ssid
   password: !secret wifi_password
