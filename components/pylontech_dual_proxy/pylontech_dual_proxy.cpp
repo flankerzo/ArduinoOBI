@@ -54,6 +54,115 @@ std::string PylontechDualProxy::frame_cid2_(const std::string &frame) {
   return frame.size() >= 9 ? frame.substr(7, 2) : "";
 }
 
+static uint16_t hex_u16_(const std::string &value, size_t offset) {
+  if (offset + 4 > value.size()) return 0;
+  unsigned int result = 0;
+  sscanf(value.substr(offset, 4).c_str(), "%x", &result);
+  return static_cast<uint16_t>(result);
+}
+
+static int16_t hex_i16_(const std::string &value, size_t offset) {
+  return static_cast<int16_t>(hex_u16_(value, offset));
+}
+
+static uint8_t hex_u8_(const std::string &value, size_t offset) {
+  if (offset + 2 > value.size()) return 0;
+  unsigned int result = 0;
+  sscanf(value.substr(offset, 2).c_str(), "%x", &result);
+  return static_cast<uint8_t>(result);
+}
+
+static float decikelvin_to_celsius_(uint16_t value) { return (static_cast<float>(value) - 2731.0f) / 10.0f; }
+
+bool PylontechDualProxy::update_snapshot_from_battery_frame_(const std::string &frame,
+                                                              const std::string &request_cid2) {
+  // A normal reply has CID2=00. LENID's low 12 bits are the ASCII INFO length;
+  // its high nibble is LCHKSUM. Do not interpret LENID as a plain length.
+  if (!is_valid_frame_(frame) || frame_cid2_(frame) != "00" || frame.size() < 18) return false;
+  unsigned int lenid = 0;
+  sscanf(frame.substr(9, 4).c_str(), "%x", &lenid);
+  const size_t info_len = lenid & 0x0fff;
+  if (info_len != frame.size() - 18) return false;
+  const std::string info = frame.substr(13, info_len);
+
+  if (request_cid2 == "61" && info.size() == 98) {
+    const float voltage = static_cast<float>(hex_u16_(info, 0)) / 1000.0f;
+    const float current = static_cast<float>(hex_i16_(info, 4)) / 100.0f;
+    const float soc = static_cast<float>(hex_u8_(info, 8));
+    const float cycles = static_cast<float>(hex_u16_(info, 10));
+    const float soh = static_cast<float>(hex_u8_(info, 18));
+    const float max_cell_voltage = static_cast<float>(hex_u16_(info, 22)) / 1000.0f;
+    const float min_cell_voltage = static_cast<float>(hex_u16_(info, 30)) / 1000.0f;
+    const float cell_temperature = decikelvin_to_celsius_(hex_u16_(info, 38));
+    const float max_temperature = decikelvin_to_celsius_(hex_u16_(info, 42));
+    const float min_temperature = decikelvin_to_celsius_(hex_u16_(info, 50));
+    const float mosfet_temperature = decikelvin_to_celsius_(hex_u16_(info, 58));
+    const float max_mosfet_temperature = decikelvin_to_celsius_(hex_u16_(info, 62));
+    const float min_mosfet_temperature = decikelvin_to_celsius_(hex_u16_(info, 70));
+    const float bms_temperature = decikelvin_to_celsius_(hex_u16_(info, 78));
+    const float max_bms_temperature = decikelvin_to_celsius_(hex_u16_(info, 82));
+    const float min_bms_temperature = decikelvin_to_celsius_(hex_u16_(info, 90));
+
+    if (soc_sensor_ != nullptr) soc_sensor_->publish_state(soc);
+    if (voltage_sensor_ != nullptr) voltage_sensor_->publish_state(voltage);
+    if (current_sensor_ != nullptr) current_sensor_->publish_state(current);
+    if (temperature_sensor_ != nullptr) temperature_sensor_->publish_state(cell_temperature);
+    if (soh_sensor_ != nullptr) soh_sensor_->publish_state(soh);
+    if (cycle_count_sensor_ != nullptr) cycle_count_sensor_->publish_state(cycles);
+    // The JK Pylontech implementation uses 0000 for several unsupported
+    // extrema. Do not publish physically impossible zero-voltage/-273.1 C.
+    if (max_cell_voltage_sensor_ != nullptr && hex_u16_(info, 22) != 0)
+      max_cell_voltage_sensor_->publish_state(max_cell_voltage);
+    if (min_cell_voltage_sensor_ != nullptr && hex_u16_(info, 30) != 0)
+      min_cell_voltage_sensor_->publish_state(min_cell_voltage);
+    if (max_temperature_sensor_ != nullptr && hex_u16_(info, 42) != 0)
+      max_temperature_sensor_->publish_state(max_temperature);
+    if (min_temperature_sensor_ != nullptr && hex_u16_(info, 50) != 0)
+      min_temperature_sensor_->publish_state(min_temperature);
+    if (mosfet_temperature_sensor_ != nullptr && hex_u16_(info, 58) != 0)
+      mosfet_temperature_sensor_->publish_state(mosfet_temperature);
+    if (max_mosfet_temperature_sensor_ != nullptr && hex_u16_(info, 62) != 0)
+      max_mosfet_temperature_sensor_->publish_state(max_mosfet_temperature);
+    if (min_mosfet_temperature_sensor_ != nullptr && hex_u16_(info, 70) != 0)
+      min_mosfet_temperature_sensor_->publish_state(min_mosfet_temperature);
+    if (bms_temperature_sensor_ != nullptr && hex_u16_(info, 78) != 0)
+      bms_temperature_sensor_->publish_state(bms_temperature);
+    if (max_bms_temperature_sensor_ != nullptr && hex_u16_(info, 82) != 0)
+      max_bms_temperature_sensor_->publish_state(max_bms_temperature);
+    if (min_bms_temperature_sensor_ != nullptr && hex_u16_(info, 90) != 0)
+      min_bms_temperature_sensor_->publish_state(min_bms_temperature);
+    if (battery_charging_sensor_ != nullptr) battery_charging_sensor_->publish_state(current > 0.0f);
+    if (battery_discharging_sensor_ != nullptr) battery_discharging_sensor_->publish_state(current < 0.0f);
+
+    shared_snapshot_.valid = true;
+    shared_snapshot_.updated_ms = millis();
+    shared_snapshot_.voltage_mv = hex_u16_(info, 0);
+    shared_snapshot_.current_ca = hex_i16_(info, 4);
+    shared_snapshot_.soc_percent = hex_u8_(info, 8);
+    shared_snapshot_.max_cell_v_mv = hex_u16_(info, 22);
+    shared_snapshot_.min_cell_v_mv = hex_u16_(info, 30);
+    return true;
+  }
+
+  if (request_cid2 == "63" && info.size() == 18) {
+    const float max_charge_voltage = static_cast<float>(hex_u16_(info, 0)) / 1000.0f;
+    const float min_discharge_voltage = static_cast<float>(hex_u16_(info, 4)) / 1000.0f;
+    const float max_charge_current = static_cast<float>(hex_u16_(info, 8)) / 10.0f;
+    const float max_discharge_current = static_cast<float>(hex_u16_(info, 12)) / 10.0f;
+    if (max_voltage_sensor_ != nullptr) max_voltage_sensor_->publish_state(max_charge_voltage);
+    if (min_voltage_sensor_ != nullptr) min_voltage_sensor_->publish_state(min_discharge_voltage);
+    if (max_charge_current_sensor_ != nullptr) max_charge_current_sensor_->publish_state(max_charge_current);
+    if (max_discharge_current_sensor_ != nullptr) max_discharge_current_sensor_->publish_state(max_discharge_current);
+    shared_snapshot_.max_charge_v_mv = hex_u16_(info, 0);
+    shared_snapshot_.min_discharge_v_mv = hex_u16_(info, 4);
+    shared_snapshot_.max_charge_i_da = hex_u16_(info, 8);
+    shared_snapshot_.max_discharge_i_da = hex_u16_(info, 12);
+    return true;
+  }
+
+  return false;
+}
+
 void PylontechDualProxy::read_inverter_requests_() {
   while (available()) {
     uint8_t byte;
@@ -154,6 +263,7 @@ void PylontechDualProxy::read_battery_frames_() {
             frame_cid2_(response) == "00") {
           const PendingRequest pending = pending_requests_.front();
           pending_requests_.pop_front();
+          this->update_snapshot_from_battery_frame_(response, pending.cid2);
           if (pending.requester != nullptr) {
             pending.requester->log_raw_frame_("router->inverter reply", response);
             pending.requester->write_str(response.c_str());

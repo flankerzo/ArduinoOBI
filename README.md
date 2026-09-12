@@ -28,6 +28,9 @@ The custom component is under:
 - returns a matched reply only to the inverter that requested it
 - forwards unmatched, valid battery frames to both inverter UARTs as unsolicited events
 - logs raw Pylontech frames for diagnostics
+- read-only publishes Pylontech V3.5 `61`/`63` replies to Home Assistant:
+  pack voltage/current/SOC, SOH, cycles, min/max cell voltage, temperatures,
+  and charge/discharge limits
 
 ## Recommended usage
 
@@ -39,6 +42,8 @@ The custom component is under:
 
 This project is intentionally designed around raw Pylontech pass-through only.
 It does not speak JK Modbus or map JK Modbus registers.
+The observed Pylontech `61` reply provides aggregate min/max cell values, not
+individual readings for every battery cell.
 
 ## Safety
 

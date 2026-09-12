@@ -83,10 +83,23 @@ pylontech_dual_proxy:
     temperature: battery_temperature
     state_of_health: battery_soh
     cycle_count: battery_cycle_count
+    max_cell_voltage: battery_max_cell_voltage
+    min_cell_voltage: battery_min_cell_voltage
+    max_temperature: battery_max_cell_temperature
+    min_temperature: battery_min_cell_temperature
+    mosfet_temperature: battery_mosfet_temperature
+    max_mosfet_temperature: battery_max_mosfet_temperature
+    min_mosfet_temperature: battery_min_mosfet_temperature
+    bms_temperature: battery_bms_temperature
+    max_bms_temperature: battery_max_bms_temperature
+    min_bms_temperature: battery_min_bms_temperature
     max_voltage: battery_max_voltage
     min_voltage: battery_min_voltage
     max_charge_current: battery_max_charge_current
     max_discharge_current: battery_max_discharge_current
+    battery_charging: battery_charging
+    battery_discharging: battery_discharging
+    last_battery_frame: battery_last_frame
 
   - id: pylontech_inv_1
     uart_id: uart_inv_1
@@ -112,8 +125,7 @@ sensor:
     state_class: measurement
     device_class: battery
     accuracy_decimals: 0
-    lambda: |-
-      return 0.0;
+    update_interval: never
 
   - platform: template
     id: battery_voltage
@@ -122,8 +134,7 @@ sensor:
     state_class: measurement
     device_class: voltage
     accuracy_decimals: 2
-    lambda: |-
-      return 0.0;
+    update_interval: never
 
   - platform: template
     id: battery_current
@@ -132,8 +143,7 @@ sensor:
     state_class: measurement
     device_class: current
     accuracy_decimals: 2
-    lambda: |-
-      return 0.0;
+    update_interval: never
 
   - platform: template
     id: battery_temperature
@@ -142,8 +152,7 @@ sensor:
     state_class: measurement
     device_class: temperature
     accuracy_decimals: 1
-    lambda: |-
-      return 0.0;
+    update_interval: never
 
   - platform: template
     id: battery_soh
@@ -151,16 +160,14 @@ sensor:
     unit_of_measurement: "%"
     state_class: measurement
     accuracy_decimals: 0
-    lambda: |-
-      return 0.0;
+    update_interval: never
 
   - platform: template
     id: battery_cycle_count
     name: "Battery Cycle Count"
     state_class: measurement
     accuracy_decimals: 0
-    lambda: |-
-      return 0.0;
+    update_interval: never
 
   - platform: template
     id: battery_max_voltage
@@ -169,8 +176,7 @@ sensor:
     state_class: measurement
     device_class: voltage
     accuracy_decimals: 2
-    lambda: |-
-      return 0.0;
+    update_interval: never
 
   - platform: template
     id: battery_min_voltage
@@ -179,8 +185,7 @@ sensor:
     state_class: measurement
     device_class: voltage
     accuracy_decimals: 2
-    lambda: |-
-      return 0.0;
+    update_interval: never
 
   - platform: template
     id: battery_max_charge_current
@@ -189,8 +194,7 @@ sensor:
     state_class: measurement
     device_class: current
     accuracy_decimals: 2
-    lambda: |-
-      return 0.0;
+    update_interval: never
 
   - platform: template
     id: battery_max_discharge_current
@@ -199,64 +203,145 @@ sensor:
     state_class: measurement
     device_class: current
     accuracy_decimals: 2
-    lambda: |-
-      return 0.0;
+    update_interval: never
+
+  # CID2 61 exposes aggregate min/max cell values, not 16 individual cell voltages.
+  - platform: template
+    id: battery_max_cell_voltage
+    name: "Battery Maximum Cell Voltage"
+    unit_of_measurement: "V"
+    state_class: measurement
+    device_class: voltage
+    accuracy_decimals: 3
+    update_interval: never
+
+  - platform: template
+    id: battery_min_cell_voltage
+    name: "Battery Minimum Cell Voltage"
+    unit_of_measurement: "V"
+    state_class: measurement
+    device_class: voltage
+    accuracy_decimals: 3
+    update_interval: never
+
+  - platform: template
+    id: battery_max_cell_temperature
+    name: "Battery Maximum Cell Temperature"
+    unit_of_measurement: "°C"
+    state_class: measurement
+    device_class: temperature
+    accuracy_decimals: 1
+    update_interval: never
+
+  - platform: template
+    id: battery_min_cell_temperature
+    name: "Battery Minimum Cell Temperature"
+    unit_of_measurement: "°C"
+    state_class: measurement
+    device_class: temperature
+    accuracy_decimals: 1
+    update_interval: never
+
+  - platform: template
+    id: battery_mosfet_temperature
+    name: "Battery MOSFET Temperature"
+    unit_of_measurement: "°C"
+    state_class: measurement
+    device_class: temperature
+    accuracy_decimals: 1
+    update_interval: never
+
+  - platform: template
+    id: battery_max_mosfet_temperature
+    name: "Battery Maximum MOSFET Temperature"
+    unit_of_measurement: "°C"
+    state_class: measurement
+    device_class: temperature
+    accuracy_decimals: 1
+    update_interval: never
+
+  - platform: template
+    id: battery_min_mosfet_temperature
+    name: "Battery Minimum MOSFET Temperature"
+    unit_of_measurement: "°C"
+    state_class: measurement
+    device_class: temperature
+    accuracy_decimals: 1
+    update_interval: never
+
+  - platform: template
+    id: battery_bms_temperature
+    name: "Battery BMS Temperature"
+    unit_of_measurement: "°C"
+    state_class: measurement
+    device_class: temperature
+    accuracy_decimals: 1
+    update_interval: never
+
+  - platform: template
+    id: battery_max_bms_temperature
+    name: "Battery Maximum BMS Temperature"
+    unit_of_measurement: "°C"
+    state_class: measurement
+    device_class: temperature
+    accuracy_decimals: 1
+    update_interval: never
+
+  - platform: template
+    id: battery_min_bms_temperature
+    name: "Battery Minimum BMS Temperature"
+    unit_of_measurement: "°C"
+    state_class: measurement
+    device_class: temperature
+    accuracy_decimals: 1
+    update_interval: never
 
 binary_sensor:
   - platform: template
     id: battery_charging
     name: "Battery Charging"
-    lambda: |-
-      return false;
+    update_interval: never
 
   - platform: template
     id: battery_discharging
     name: "Battery Discharging"
-    lambda: |-
-      return false;
+    update_interval: never
 
 text_sensor:
   - platform: template
     id: battery_last_frame
     name: "Battery Last Frame"
-    lambda: |-
-      return {""};
+    update_interval: never
 
   - platform: template
     id: battery_last_event
     name: "Battery Last Event"
-    lambda: |-
-      return {""};
+    update_interval: never
 
   - platform: template
     id: battery_last_snapshot
     name: "Battery Last Snapshot"
-    lambda: |-
-      return {""};
+    update_interval: never
 
   - platform: template
     id: inverter_1_last_request
     name: "Inverter 1 Last Request"
-    lambda: |-
-      return {""};
+    update_interval: never
 
   - platform: template
     id: inverter_2_last_request
     name: "Inverter 2 Last Request"
-    lambda: |-
-      return {""};
+    update_interval: never
 
   - platform: template
     id: inverter_1_heartbeat
     name: "Inverter 1 Heartbeat"
-    lambda: |-
-      return {""};
+    update_interval: never
 
   - platform: template
     id: inverter_2_heartbeat
     name: "Inverter 2 Heartbeat"
-    lambda: |-
-      return {""};
+    update_interval: never
 
 # ---------------------------------------------------------------------------
 # The Home Assistant values in this example are derived from the live battery
