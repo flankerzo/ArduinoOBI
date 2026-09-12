@@ -59,6 +59,7 @@ class PylontechDualProxy : public Component, public uart::UARTDevice {
   void set_cache_ttl(uint32_t ttl) { this->cache_ttl_ms_ = ttl; }
   void set_battery_port(bool battery_port) { this->is_battery_port_ = battery_port; }
   void set_response_timeout(uint32_t timeout) { this->response_timeout_ms_ = timeout; }
+  void set_link_timeout(uint32_t timeout) { this->link_timeout_ms_ = timeout; }
   void set_ha_update_interval_number(number::Number *number) { this->ha_update_interval_number_ = number; }
   void set_gsad_update_interval_number(number::Number *number) { this->gsad_update_interval_number_ = number; }
   void set_gscd_limits_update_interval_number(number::Number *number) { this->gscd_limits_update_interval_number_ = number; }
@@ -142,6 +143,7 @@ class PylontechDualProxy : public Component, public uart::UARTDevice {
   void set_last_battery_snapshot_sensor(text_sensor::TextSensor *sensor) { this->last_battery_snapshot_sensor_ = sensor; }
   void set_battery_charging_sensor(binary_sensor::BinarySensor *sensor) { this->battery_charging_sensor_ = sensor; }
   void set_battery_discharging_sensor(binary_sensor::BinarySensor *sensor) { this->battery_discharging_sensor_ = sensor; }
+  void set_online_sensor(binary_sensor::BinarySensor *sensor) { this->online_sensor_ = sensor; }
 
  protected:
  public:
@@ -163,6 +165,8 @@ class PylontechDualProxy : public Component, public uart::UARTDevice {
   bool update_snapshot_from_battery_frame_(const std::string &frame, const std::string &request_cid2);
   bool should_publish_to_ha_(const std::string &request_cid2);
   number::Number *interval_number_for_cid_(const std::string &request_cid2) const;
+  void mark_link_active_();
+  void update_link_status_();
   void publish_decoded_response_(const std::string &request_cid2, const std::string &info);
   void read_inverter_requests_();
   void read_battery_frames_();
@@ -244,6 +248,9 @@ class PylontechDualProxy : public Component, public uart::UARTDevice {
   uint32_t request_dedupe_window_ms_{250};
   uint32_t event_dedupe_window_ms_{2000};
   uint32_t response_timeout_ms_{1500};
+  uint32_t link_timeout_ms_{60000};
+  uint32_t last_link_activity_ms_{0};
+  bool link_online_{false};
   bool passthrough_unknown_requests_{true};
   bool passthrough_battery_responses_{true};
   bool is_battery_port_{false};
@@ -274,6 +281,7 @@ class PylontechDualProxy : public Component, public uart::UARTDevice {
   std::map<std::string, uint32_t> last_ha_publish_ms_;
   binary_sensor::BinarySensor *battery_charging_sensor_{nullptr};
   binary_sensor::BinarySensor *battery_discharging_sensor_{nullptr};
+  binary_sensor::BinarySensor *online_sensor_{nullptr};
 
   static SharedBatterySnapshot shared_snapshot_;
 };

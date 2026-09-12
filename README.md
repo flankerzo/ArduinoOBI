@@ -28,6 +28,9 @@ The custom component is under:
 - returns a matched reply only to the inverter that requested it
 - forwards unmatched, valid battery frames to both inverter UARTs as unsolicited events
 - logs raw Pylontech frames for diagnostics
+- exposes Battery, Inverter 1, and Inverter 2 connectivity binary sensors;
+  each is online after a valid received frame and offline after its configured
+  `link_timeout` (60 seconds in the example)
 - read-only publishes Pylontech V3.5 `61`/`63` replies to Home Assistant:
   pack voltage/current/SOC, SOH, cycles, min/max cell voltage, temperatures,
   and charge/discharge limits
@@ -50,6 +53,8 @@ The custom component is under:
 
 This project is intentionally designed around raw Pylontech pass-through only.
 It does not speak JK Modbus or map JK Modbus registers.
+The router works locally without a Home Assistant/API connection; the example
+disables API-disconnect reboots so RS485 routing continues while HA is down.
 The observed Pylontech `61` reply provides aggregate min/max cell values, not
 individual readings for every battery cell.
 It does not inject its own polling requests. This means no additional traffic

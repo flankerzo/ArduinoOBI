@@ -17,6 +17,7 @@ SharedBatterySnapshot PylontechDualProxy::shared_snapshot_{};
 
 void PylontechDualProxy::setup() {
   register_instance_(this);
+  if (online_sensor_ != nullptr) online_sensor_->publish_state(false);
   ESP_LOGCONFIG(TAG, "Pylontech V3.5 queued router starting");
 }
 
@@ -34,6 +35,7 @@ void PylontechDualProxy::loop() {
   } else {
     read_inverter_requests_();
   }
+  update_link_status_();
 }
 
 bool PylontechDualProxy::is_valid_frame_(const std::string &frame) {
@@ -113,6 +115,20 @@ bool PylontechDualProxy::should_publish_to_ha_(const std::string &request_cid2) 
   if (last != 0 && now - last < interval_ms) return false;
   last_ha_publish_ms_[request_cid2] = now;
   return true;
+}
+
+void PylontechDualProxy::mark_link_active_() {
+  last_link_activity_ms_ = millis();
+  if (!link_online_) {
+    link_online_ = true;
+    if (online_sensor_ != nullptr) online_sensor_->publish_state(true);
+  }
+}
+
+void PylontechDualProxy::update_link_status_() {
+  if (!link_online_ || millis() - last_link_activity_ms_ < link_timeout_ms_) return;
+  link_online_ = false;
+  if (online_sensor_ != nullptr) online_sensor_->publish_state(false);
 }
 
 void PylontechDualProxy::publish_decoded_response_(const std::string &request_cid2, const std::string &info) {
@@ -315,6 +331,7 @@ void PylontechDualProxy::read_inverter_requests_() {
           ESP_LOGW(TAG, "Discarding invalid inverter frame: %s", request.c_str());
           continue;
         }
+        mark_link_active_();
         if (last_inverter_request_sensor_ != nullptr) last_inverter_request_sensor_->publish_state(request);
         log_raw_frame_("inverter->router", request);
         for (auto *instance : active_instances_) {
@@ -384,6 +401,7 @@ void PylontechDualProxy::read_battery_frames_() {
           ESP_LOGW(TAG, "Discarding invalid battery frame: %s", response.c_str());
           continue;
         }
+        mark_link_active_();
         if (last_battery_frame_sensor_ != nullptr) last_battery_frame_sensor_->publish_state(response);
         last_battery_response_ = response;
         log_raw_frame_("battery->router", response);

@@ -26,7 +26,10 @@ wifi:
   password: !secret wifi_password
   reboot_timeout: 0s
 
+# The RS485 proxy is fully local. Do not reboot merely because Home Assistant
+# is unavailable; UART routing and queued replies must continue offline.
 api:
+  reboot_timeout: 0s
 
 ota:
   - platform: esphome
@@ -77,6 +80,8 @@ pylontech_dual_proxy:
     uart_id: uart_battery
     battery_port: true
     response_timeout: 1500ms
+    link_timeout: 60s
+    online: battery_online
     cache_ttl: 2500ms
     update_timeout: 60s
     state_of_charge: battery_soc
@@ -119,16 +124,18 @@ pylontech_dual_proxy:
     # Address frames are preserved exactly; the physical UART identifies this inverter.
     cache_ttl: 2500ms
     update_timeout: 60s
+    link_timeout: 60s
+    online: inverter_1_online
     last_inverter_request: inverter_1_last_request
-    last_inverter_heartbeat: inverter_1_heartbeat
 
   - id: pylontech_inv_2
     uart_id: uart_inv_2
     # Address frames are preserved exactly; the physical UART identifies this inverter.
     cache_ttl: 2500ms
     update_timeout: 60s
+    link_timeout: 60s
+    online: inverter_2_online
     last_inverter_request: inverter_2_last_request
-    last_inverter_heartbeat: inverter_2_heartbeat
 
 # Set these live from Home Assistant, in seconds. The global control applies to
 # all commands; per-command controls use -1 to inherit it. Zero means every
@@ -424,6 +431,25 @@ sensor:
     update_interval: never
 
 binary_sensor:
+  # Online means a checksum-valid frame was received within link_timeout.
+  - platform: template
+    id: battery_online
+    name: "Battery Online"
+    device_class: connectivity
+    update_interval: never
+
+  - platform: template
+    id: inverter_1_online
+    name: "Inverter 1 Online"
+    device_class: connectivity
+    update_interval: never
+
+  - platform: template
+    id: inverter_2_online
+    name: "Inverter 2 Online"
+    device_class: connectivity
+    update_interval: never
+
   - platform: template
     id: battery_charging
     name: "Battery Charging"
@@ -458,16 +484,6 @@ text_sensor:
   - platform: template
     id: inverter_2_last_request
     name: "Inverter 2 Last Request"
-    update_interval: never
-
-  - platform: template
-    id: inverter_1_heartbeat
-    name: "Inverter 1 Heartbeat"
-    update_interval: never
-
-  - platform: template
-    id: inverter_2_heartbeat
-    name: "Inverter 2 Heartbeat"
     update_interval: never
 
 # ---------------------------------------------------------------------------

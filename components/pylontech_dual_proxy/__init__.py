@@ -72,11 +72,15 @@ CONF_MANUFACTURER_INFO_UPDATE_INTERVAL = "manufacturer_info_update_interval"
 CONF_CHARGE_MANAGEMENT_UPDATE_INTERVAL = "charge_management_update_interval"
 CONF_MODULE_SERIAL_UPDATE_INTERVAL = "module_serial_update_interval"
 CONF_FIRMWARE_INFO_UPDATE_INTERVAL = "firmware_info_update_interval"
+CONF_LINK_TIMEOUT = "link_timeout"
+CONF_ONLINE = "online"
 
 SENSOR_KEYS_SCHEMA = cv.Schema(
     {
         cv.Optional(CONF_BATTERY_PORT, default=False): cv.boolean,
         cv.Optional(CONF_RESPONSE_TIMEOUT, default="1500ms"): cv.positive_time_period_milliseconds,
+        cv.Optional(CONF_LINK_TIMEOUT, default="60s"): cv.positive_time_period_milliseconds,
+        cv.Optional(CONF_ONLINE): cv.use_id(binary_sensor.BinarySensor),
         cv.Optional(CONF_STATE_OF_CHARGE): cv.use_id(sensor.Sensor),
         cv.Optional(CONF_VOLTAGE): cv.use_id(sensor.Sensor),
         cv.Optional(CONF_CURRENT): cv.use_id(sensor.Sensor),
@@ -204,6 +208,8 @@ async def to_code(config):
             cg.add(var.set_battery_charging_sensor((await cg.get_variable(conf[CONF_BATTERY_CHARGING]))))
         if CONF_BATTERY_DISCHARGING in conf:
             cg.add(var.set_battery_discharging_sensor((await cg.get_variable(conf[CONF_BATTERY_DISCHARGING]))))
+        if CONF_ONLINE in conf:
+            cg.add(var.set_online_sensor((await cg.get_variable(conf[CONF_ONLINE]))))
 
         if CONF_TOTAL_VOLTAGE_HIGH_ALARM in conf:
             cg.add(var.set_total_voltage_high_alarm((await cg.get_variable(conf[CONF_TOTAL_VOLTAGE_HIGH_ALARM]))))
@@ -275,5 +281,6 @@ async def to_code(config):
 
         cg.add(var.set_battery_port(conf[CONF_BATTERY_PORT]))
         cg.add(var.set_response_timeout(conf[CONF_RESPONSE_TIMEOUT]))
+        cg.add(var.set_link_timeout(conf[CONF_LINK_TIMEOUT]))
         cg.add(var.set_cache_ttl(conf[CONF_CACHE_TTL]))
         cg.add(var.set_update_timeout(conf[CONF_UPDATE_TIMEOUT]))
