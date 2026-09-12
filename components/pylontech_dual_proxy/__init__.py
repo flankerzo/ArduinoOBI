@@ -3,10 +3,11 @@ import esphome.config_validation as cv
 from esphome.components import uart, sensor, binary_sensor, text_sensor, number, switch
 from esphome.const import CONF_ID
 
-# Make every C++ component referenced by this external component available to
-# ESPHome's build. In particular, the optional HA diagnostic switches need the
-# switch header even when no built-in switch component would otherwise load it.
-DEPENDENCIES = ["uart", "sensor", "binary_sensor", "text_sensor", "number", "switch"]
+# The router always needs UART. The remaining integrations are optional output
+# types; auto-load them so the C++ headers are available even when a user's
+# minimal YAML has not enabled one of the diagnostic entities yet.
+DEPENDENCIES = ["uart"]
+AUTO_LOAD = ["sensor", "binary_sensor", "text_sensor", "number", "switch"]
 
 pylontech_dual_proxy_ns = cg.esphome_ns.namespace("esphome::pylontech_dual_proxy")
 PylontechDualProxy = pylontech_dual_proxy_ns.class_(
