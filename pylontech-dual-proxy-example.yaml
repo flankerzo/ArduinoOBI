@@ -70,6 +70,8 @@ uart:
 # Inverter ports: each inverter is a separate master UART.
 # Any valid battery frame not matching the queued request is passed to both
 # inverter UARTs as an unsolicited alarm/event frame.
+# HA update controls only rate-limit Home Assistant publishes. They never
+# delay, remove, or alter RS485 frames. Zero means every received response.
 pylontech_dual_proxy:
   - id: pylontech_battery
     uart_id: uart_battery
@@ -101,6 +103,16 @@ pylontech_dual_proxy:
     battery_discharging: battery_discharging
     last_battery_frame: battery_last_frame
     last_battery_snapshot: battery_last_snapshot
+    ha_update_interval: ha_update_interval
+    gsad_update_interval: gsad_update_interval
+    gscd_limits_update_interval: gscd_limits_update_interval
+    module_analog_update_interval: module_analog_update_interval
+    system_parameters_update_interval: system_parameters_update_interval
+    protocol_version_update_interval: protocol_version_update_interval
+    manufacturer_info_update_interval: manufacturer_info_update_interval
+    charge_management_update_interval: charge_management_update_interval
+    module_serial_update_interval: module_serial_update_interval
+    firmware_info_update_interval: firmware_info_update_interval
 
   - id: pylontech_inv_1
     uart_id: uart_inv_1
@@ -117,6 +129,120 @@ pylontech_dual_proxy:
     update_timeout: 60s
     last_inverter_request: inverter_2_last_request
     last_inverter_heartbeat: inverter_2_heartbeat
+
+# Set these live from Home Assistant, in seconds. The global control applies to
+# all commands; per-command controls use -1 to inherit it. Zero means every
+# received response. Alarms CID44/CID62 are always immediate.
+number:
+  - platform: template
+    id: ha_update_interval
+    name: "Battery HA Update Interval"
+    unit_of_measurement: "s"
+    min_value: 0
+    max_value: 300
+    step: 1
+    initial_value: 0
+    optimistic: true
+    restore_value: true
+
+  - platform: template
+    id: gsad_update_interval
+    name: "Get System Analog Data (61) Update Interval"
+    unit_of_measurement: "s"
+    min_value: -1
+    max_value: 300
+    step: 1
+    initial_value: -1
+    optimistic: true
+    restore_value: true
+
+  - platform: template
+    id: gscd_limits_update_interval
+    name: "Get Charge Discharge Limits (63) Update Interval"
+    unit_of_measurement: "s"
+    min_value: -1
+    max_value: 300
+    step: 1
+    initial_value: -1
+    optimistic: true
+    restore_value: true
+
+  - platform: template
+    id: module_analog_update_interval
+    name: "Get Module Analog Data (42) Update Interval"
+    unit_of_measurement: "s"
+    min_value: -1
+    max_value: 300
+    step: 1
+    initial_value: -1
+    optimistic: true
+    restore_value: true
+
+  - platform: template
+    id: system_parameters_update_interval
+    name: "Get System Parameters (47) Update Interval"
+    unit_of_measurement: "s"
+    min_value: -1
+    max_value: 300
+    step: 1
+    initial_value: -1
+    optimistic: true
+    restore_value: true
+
+  - platform: template
+    id: protocol_version_update_interval
+    name: "Get Protocol Version (4F) Update Interval"
+    unit_of_measurement: "s"
+    min_value: -1
+    max_value: 300
+    step: 1
+    initial_value: -1
+    optimistic: true
+    restore_value: true
+
+  - platform: template
+    id: manufacturer_info_update_interval
+    name: "Get Manufacturer Info (51) Update Interval"
+    unit_of_measurement: "s"
+    min_value: -1
+    max_value: 300
+    step: 1
+    initial_value: -1
+    optimistic: true
+    restore_value: true
+
+  - platform: template
+    id: charge_management_update_interval
+    name: "Get Charge Discharge Management (92) Update Interval"
+    unit_of_measurement: "s"
+    min_value: -1
+    max_value: 300
+    step: 1
+    initial_value: -1
+    optimistic: true
+    restore_value: true
+
+  - platform: template
+    id: module_serial_update_interval
+    name: "Get Module Serial Number (93) Update Interval"
+    unit_of_measurement: "s"
+    min_value: -1
+    max_value: 300
+    step: 1
+    initial_value: -1
+    optimistic: true
+    restore_value: true
+
+  - platform: template
+    id: firmware_info_update_interval
+    name: "Get Firmware Info (96) Update Interval"
+    unit_of_measurement: "s"
+    min_value: -1
+    max_value: 300
+    step: 1
+    initial_value: -1
+    optimistic: true
+    restore_value: true
 
 sensor:
   - platform: template

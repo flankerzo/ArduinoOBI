@@ -1,6 +1,6 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
-from esphome.components import uart, sensor, binary_sensor, text_sensor
+from esphome.components import uart, sensor, binary_sensor, text_sensor, number
 from esphome.const import CONF_ID
 
 pylontech_dual_proxy_ns = cg.esphome_ns.namespace("esphome::pylontech_dual_proxy")
@@ -62,6 +62,16 @@ CONF_LAST_BATTERY_FRAME = "last_battery_frame"
 CONF_LAST_INVERTER_REQUEST = "last_inverter_request"
 CONF_LAST_BATTERY_EVENT = "last_battery_event"
 CONF_LAST_INVERTER_HEARTBEAT = "last_inverter_heartbeat"
+CONF_HA_UPDATE_INTERVAL = "ha_update_interval"
+CONF_GSAD_UPDATE_INTERVAL = "gsad_update_interval"
+CONF_GSCD_LIMITS_UPDATE_INTERVAL = "gscd_limits_update_interval"
+CONF_MODULE_ANALOG_UPDATE_INTERVAL = "module_analog_update_interval"
+CONF_SYSTEM_PARAMETERS_UPDATE_INTERVAL = "system_parameters_update_interval"
+CONF_PROTOCOL_VERSION_UPDATE_INTERVAL = "protocol_version_update_interval"
+CONF_MANUFACTURER_INFO_UPDATE_INTERVAL = "manufacturer_info_update_interval"
+CONF_CHARGE_MANAGEMENT_UPDATE_INTERVAL = "charge_management_update_interval"
+CONF_MODULE_SERIAL_UPDATE_INTERVAL = "module_serial_update_interval"
+CONF_FIRMWARE_INFO_UPDATE_INTERVAL = "firmware_info_update_interval"
 
 SENSOR_KEYS_SCHEMA = cv.Schema(
     {
@@ -115,6 +125,16 @@ SENSOR_KEYS_SCHEMA = cv.Schema(
         cv.Optional(CONF_LAST_INVERTER_REQUEST): cv.use_id(text_sensor.TextSensor),
         cv.Optional(CONF_LAST_BATTERY_EVENT): cv.use_id(text_sensor.TextSensor),
         cv.Optional(CONF_LAST_INVERTER_HEARTBEAT): cv.use_id(text_sensor.TextSensor),
+        cv.Optional(CONF_HA_UPDATE_INTERVAL): cv.use_id(number.Number),
+        cv.Optional(CONF_GSAD_UPDATE_INTERVAL): cv.use_id(number.Number),
+        cv.Optional(CONF_GSCD_LIMITS_UPDATE_INTERVAL): cv.use_id(number.Number),
+        cv.Optional(CONF_MODULE_ANALOG_UPDATE_INTERVAL): cv.use_id(number.Number),
+        cv.Optional(CONF_SYSTEM_PARAMETERS_UPDATE_INTERVAL): cv.use_id(number.Number),
+        cv.Optional(CONF_PROTOCOL_VERSION_UPDATE_INTERVAL): cv.use_id(number.Number),
+        cv.Optional(CONF_MANUFACTURER_INFO_UPDATE_INTERVAL): cv.use_id(number.Number),
+        cv.Optional(CONF_CHARGE_MANAGEMENT_UPDATE_INTERVAL): cv.use_id(number.Number),
+        cv.Optional(CONF_MODULE_SERIAL_UPDATE_INTERVAL): cv.use_id(number.Number),
+        cv.Optional(CONF_FIRMWARE_INFO_UPDATE_INTERVAL): cv.use_id(number.Number),
         cv.Optional(CONF_LAST_BATTERY_SNAPSHOT): cv.use_id(text_sensor.TextSensor),
         cv.Optional(CONF_CACHE_TTL, default="2500ms"): cv.positive_time_period_milliseconds,
         cv.Optional(CONF_UPDATE_TIMEOUT, default="60s"): cv.positive_time_period_milliseconds,
@@ -237,6 +257,21 @@ async def to_code(config):
             cg.add(var.set_last_inverter_heartbeat_sensor((await cg.get_variable(conf[CONF_LAST_INVERTER_HEARTBEAT]))))
         if CONF_LAST_BATTERY_SNAPSHOT in conf:
             cg.add(var.set_last_battery_snapshot_sensor((await cg.get_variable(conf[CONF_LAST_BATTERY_SNAPSHOT]))))
+
+        for key, setter in (
+            (CONF_HA_UPDATE_INTERVAL, "set_ha_update_interval_number"),
+            (CONF_GSAD_UPDATE_INTERVAL, "set_gsad_update_interval_number"),
+            (CONF_GSCD_LIMITS_UPDATE_INTERVAL, "set_gscd_limits_update_interval_number"),
+            (CONF_MODULE_ANALOG_UPDATE_INTERVAL, "set_module_analog_update_interval_number"),
+            (CONF_SYSTEM_PARAMETERS_UPDATE_INTERVAL, "set_system_parameters_update_interval_number"),
+            (CONF_PROTOCOL_VERSION_UPDATE_INTERVAL, "set_protocol_version_update_interval_number"),
+            (CONF_MANUFACTURER_INFO_UPDATE_INTERVAL, "set_manufacturer_info_update_interval_number"),
+            (CONF_CHARGE_MANAGEMENT_UPDATE_INTERVAL, "set_charge_management_update_interval_number"),
+            (CONF_MODULE_SERIAL_UPDATE_INTERVAL, "set_module_serial_update_interval_number"),
+            (CONF_FIRMWARE_INFO_UPDATE_INTERVAL, "set_firmware_info_update_interval_number"),
+        ):
+            if key in conf:
+                cg.add(getattr(var, setter)((await cg.get_variable(conf[key]))))
 
         cg.add(var.set_battery_port(conf[CONF_BATTERY_PORT]))
         cg.add(var.set_response_timeout(conf[CONF_RESPONSE_TIMEOUT]))

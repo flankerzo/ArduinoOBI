@@ -35,6 +35,10 @@ The custom component is under:
   `92`, `93`, and `96`) into the **Battery Last Decoded Reply** diagnostic
   text sensor when an inverter requests one; variant/unknown replies are kept
   as their CID-tagged raw INFO rather than guessed
+- includes live Home Assistant update-rate controls in seconds: a global
+  default plus per-command overrides. `0` publishes every received response;
+  `-1` on an override inherits the global setting. Pylontech alarm replies
+  (`44` and `62`) always publish immediately.
 
 ## Recommended usage
 

@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <deque>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -9,6 +10,7 @@
 #include "esphome/components/uart/uart.h"
 #include "esphome/components/sensor/sensor.h"
 #include "esphome/components/text_sensor/text_sensor.h"
+#include "esphome/components/number/number.h"
 #ifdef USE_BINARY_SENSOR
 #include "esphome/components/binary_sensor/binary_sensor.h"
 #endif
@@ -57,6 +59,16 @@ class PylontechDualProxy : public Component, public uart::UARTDevice {
   void set_cache_ttl(uint32_t ttl) { this->cache_ttl_ms_ = ttl; }
   void set_battery_port(bool battery_port) { this->is_battery_port_ = battery_port; }
   void set_response_timeout(uint32_t timeout) { this->response_timeout_ms_ = timeout; }
+  void set_ha_update_interval_number(number::Number *number) { this->ha_update_interval_number_ = number; }
+  void set_gsad_update_interval_number(number::Number *number) { this->gsad_update_interval_number_ = number; }
+  void set_gscd_limits_update_interval_number(number::Number *number) { this->gscd_limits_update_interval_number_ = number; }
+  void set_module_analog_update_interval_number(number::Number *number) { this->module_analog_update_interval_number_ = number; }
+  void set_system_parameters_update_interval_number(number::Number *number) { this->system_parameters_update_interval_number_ = number; }
+  void set_protocol_version_update_interval_number(number::Number *number) { this->protocol_version_update_interval_number_ = number; }
+  void set_manufacturer_info_update_interval_number(number::Number *number) { this->manufacturer_info_update_interval_number_ = number; }
+  void set_charge_management_update_interval_number(number::Number *number) { this->charge_management_update_interval_number_ = number; }
+  void set_module_serial_update_interval_number(number::Number *number) { this->module_serial_update_interval_number_ = number; }
+  void set_firmware_info_update_interval_number(number::Number *number) { this->firmware_info_update_interval_number_ = number; }
 
   bool refresh_if_needed_();
   void ensure_cache_();
@@ -149,6 +161,8 @@ class PylontechDualProxy : public Component, public uart::UARTDevice {
   static std::string frame_cid2_(const std::string &frame);
   bool refresh_battery_snapshot_();
   bool update_snapshot_from_battery_frame_(const std::string &frame, const std::string &request_cid2);
+  bool should_publish_to_ha_(const std::string &request_cid2);
+  number::Number *interval_number_for_cid_(const std::string &request_cid2) const;
   void publish_decoded_response_(const std::string &request_cid2, const std::string &info);
   void read_inverter_requests_();
   void read_battery_frames_();
@@ -247,6 +261,17 @@ class PylontechDualProxy : public Component, public uart::UARTDevice {
   text_sensor::TextSensor *last_battery_event_sensor_{nullptr};
   text_sensor::TextSensor *last_inverter_heartbeat_sensor_{nullptr};
   text_sensor::TextSensor *last_battery_snapshot_sensor_{nullptr};
+  number::Number *ha_update_interval_number_{nullptr};
+  number::Number *gsad_update_interval_number_{nullptr};
+  number::Number *gscd_limits_update_interval_number_{nullptr};
+  number::Number *module_analog_update_interval_number_{nullptr};
+  number::Number *system_parameters_update_interval_number_{nullptr};
+  number::Number *protocol_version_update_interval_number_{nullptr};
+  number::Number *manufacturer_info_update_interval_number_{nullptr};
+  number::Number *charge_management_update_interval_number_{nullptr};
+  number::Number *module_serial_update_interval_number_{nullptr};
+  number::Number *firmware_info_update_interval_number_{nullptr};
+  std::map<std::string, uint32_t> last_ha_publish_ms_;
   binary_sensor::BinarySensor *battery_charging_sensor_{nullptr};
   binary_sensor::BinarySensor *battery_discharging_sensor_{nullptr};
 

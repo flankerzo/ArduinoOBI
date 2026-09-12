@@ -84,6 +84,37 @@ static std::string ascii_from_hex_(const std::string &value, size_t offset, size
   return result;
 }
 
+number::Number *PylontechDualProxy::interval_number_for_cid_(const std::string &request_cid2) const {
+  if (request_cid2 == "61") return gsad_update_interval_number_;
+  if (request_cid2 == "63") return gscd_limits_update_interval_number_;
+  if (request_cid2 == "42") return module_analog_update_interval_number_;
+  if (request_cid2 == "47") return system_parameters_update_interval_number_;
+  if (request_cid2 == "4F") return protocol_version_update_interval_number_;
+  if (request_cid2 == "51") return manufacturer_info_update_interval_number_;
+  if (request_cid2 == "92") return charge_management_update_interval_number_;
+  if (request_cid2 == "93") return module_serial_update_interval_number_;
+  if (request_cid2 == "96") return firmware_info_update_interval_number_;
+  return nullptr;
+}
+
+bool PylontechDualProxy::should_publish_to_ha_(const std::string &request_cid2) {
+  // Alarm data is safety-relevant: never rate-limit CID44 (module alarm) or
+  // CID62 (system alarm). This never changes the UART/proxy timing.
+  if (request_cid2 == "44" || request_cid2 == "62") return true;
+  number::Number *interval = interval_number_for_cid_(request_cid2);
+  // Per-command controls use -1 s as "inherit the global control".
+  if (interval != nullptr && interval->state < 0.0f) interval = nullptr;
+  if (interval == nullptr) interval = ha_update_interval_number_;
+  const float seconds = interval == nullptr ? 0.0f : interval->state;
+  if (seconds <= 0.0f) return true;
+  const uint32_t now = millis();
+  const uint32_t interval_ms = static_cast<uint32_t>(seconds * 1000.0f);
+  const uint32_t last = last_ha_publish_ms_[request_cid2];
+  if (last != 0 && now - last < interval_ms) return false;
+  last_ha_publish_ms_[request_cid2] = now;
+  return true;
+}
+
 void PylontechDualProxy::publish_decoded_response_(const std::string &request_cid2, const std::string &info) {
   if (last_battery_snapshot_sensor_ == nullptr) return;
 
@@ -182,6 +213,7 @@ bool PylontechDualProxy::update_snapshot_from_battery_frame_(const std::string &
   const size_t info_len = lenid & 0x0fff;
   if (info_len != frame.size() - 18) return false;
   const std::string info = frame.substr(13, info_len);
+  if (!should_publish_to_ha_(request_cid2)) return true;
   publish_decoded_response_(request_cid2, info);
 
   if (request_cid2 == "61" && info.size() == 98) {
