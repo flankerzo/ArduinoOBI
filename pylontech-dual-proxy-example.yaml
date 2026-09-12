@@ -1,0 +1,274 @@
+esphome:
+  name: pylontech-dual-proxy
+  friendly_name: "Pylontech Dual Proxy"
+
+esp32:
+  board: esp32-s3-devkitc-1
+  framework:
+    type: esp-idf
+
+external_components:
+  # Use the local workspace version for active development and testing.
+  - source:
+      type: local
+      path: ./components
+    components:
+      - pylontech_dual_proxy
+
+  # GitHub fallback only for release installs:
+  # - source: github://flankerzo/Pylontech-Dual-Proxy@main
+  #   components: [pylontech_dual_proxy]
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  reboot_timeout: 0s
+
+api:
+
+ota:
+  - platform: esphome
+
+logger:
+  level: DEBUG
+
+# ---------------------------------------------------------------------------
+# UART layout
+# ---------------------------------------------------------------------------
+# uart_battery: real Pylontech battery RS485 bus
+# uart_inv_1: first inverter Pylontech master bus
+# uart_inv_2: second inverter Pylontech master bus
+#
+# This project intentionally speaks only the raw Pylontech protocol. The
+# battery and the inverters are expected to communicate on the Pylontech bus
+# only, with no JK-BMS or Modbus layer.
+uart:
+  - id: uart_battery
+    tx_pin: GPIO39
+    rx_pin: GPIO40
+    baud_rate: 9600
+    rx_buffer_size: 512
+
+  - id: uart_inv_1
+    tx_pin: GPIO41
+    rx_pin: GPIO42
+    baud_rate: 9600
+    rx_buffer_size: 256
+
+  - id: uart_inv_2
+    tx_pin: GPIO1
+    rx_pin: GPIO2
+    baud_rate: 9600
+    rx_buffer_size: 256
+
+# ---------------------------------------------------------------------------
+# Pylontech-only proxy instances
+# ---------------------------------------------------------------------------
+# Battery port: listen to the real battery UART and inspect raw frames.
+# Inverter ports: each inverter is a separate master UART.
+# Any valid battery frame not matching the queued request is passed to both
+# inverter UARTs as an unsolicited alarm/event frame.
+pylontech_dual_proxy:
+  - id: pylontech_battery
+    uart_id: uart_battery
+    battery_port: true
+    response_timeout: 1500ms
+    cache_ttl: 2500ms
+    update_timeout: 60s
+    state_of_charge: battery_soc
+    voltage: battery_voltage
+    current: battery_current
+    temperature: battery_temperature
+    state_of_health: battery_soh
+    cycle_count: battery_cycle_count
+    max_voltage: battery_max_voltage
+    min_voltage: battery_min_voltage
+    max_charge_current: battery_max_charge_current
+    max_discharge_current: battery_max_discharge_current
+
+  - id: pylontech_inv_1
+    uart_id: uart_inv_1
+    # Address frames are preserved exactly; the physical UART identifies this inverter.
+    cache_ttl: 2500ms
+    update_timeout: 60s
+    last_inverter_request: inverter_1_last_request
+    last_inverter_heartbeat: inverter_1_heartbeat
+
+  - id: pylontech_inv_2
+    uart_id: uart_inv_2
+    # Address frames are preserved exactly; the physical UART identifies this inverter.
+    cache_ttl: 2500ms
+    update_timeout: 60s
+    last_inverter_request: inverter_2_last_request
+    last_inverter_heartbeat: inverter_2_heartbeat
+
+sensor:
+  - platform: template
+    id: battery_soc
+    name: "Battery State of Charge"
+    unit_of_measurement: "%"
+    state_class: measurement
+    device_class: battery
+    accuracy_decimals: 0
+    lambda: |-
+      return 0.0;
+
+  - platform: template
+    id: battery_voltage
+    name: "Battery Voltage"
+    unit_of_measurement: "V"
+    state_class: measurement
+    device_class: voltage
+    accuracy_decimals: 2
+    lambda: |-
+      return 0.0;
+
+  - platform: template
+    id: battery_current
+    name: "Battery Current"
+    unit_of_measurement: "A"
+    state_class: measurement
+    device_class: current
+    accuracy_decimals: 2
+    lambda: |-
+      return 0.0;
+
+  - platform: template
+    id: battery_temperature
+    name: "Battery Temperature"
+    unit_of_measurement: "°C"
+    state_class: measurement
+    device_class: temperature
+    accuracy_decimals: 1
+    lambda: |-
+      return 0.0;
+
+  - platform: template
+    id: battery_soh
+    name: "Battery SOH"
+    unit_of_measurement: "%"
+    state_class: measurement
+    accuracy_decimals: 0
+    lambda: |-
+      return 0.0;
+
+  - platform: template
+    id: battery_cycle_count
+    name: "Battery Cycle Count"
+    state_class: measurement
+    accuracy_decimals: 0
+    lambda: |-
+      return 0.0;
+
+  - platform: template
+    id: battery_max_voltage
+    name: "Battery Max Voltage"
+    unit_of_measurement: "V"
+    state_class: measurement
+    device_class: voltage
+    accuracy_decimals: 2
+    lambda: |-
+      return 0.0;
+
+  - platform: template
+    id: battery_min_voltage
+    name: "Battery Min Voltage"
+    unit_of_measurement: "V"
+    state_class: measurement
+    device_class: voltage
+    accuracy_decimals: 2
+    lambda: |-
+      return 0.0;
+
+  - platform: template
+    id: battery_max_charge_current
+    name: "Battery Max Charge Current"
+    unit_of_measurement: "A"
+    state_class: measurement
+    device_class: current
+    accuracy_decimals: 2
+    lambda: |-
+      return 0.0;
+
+  - platform: template
+    id: battery_max_discharge_current
+    name: "Battery Max Discharge Current"
+    unit_of_measurement: "A"
+    state_class: measurement
+    device_class: current
+    accuracy_decimals: 2
+    lambda: |-
+      return 0.0;
+
+binary_sensor:
+  - platform: template
+    id: battery_charging
+    name: "Battery Charging"
+    lambda: |-
+      return false;
+
+  - platform: template
+    id: battery_discharging
+    name: "Battery Discharging"
+    lambda: |-
+      return false;
+
+text_sensor:
+  - platform: template
+    id: battery_last_frame
+    name: "Battery Last Frame"
+    lambda: |-
+      return {""};
+
+  - platform: template
+    id: battery_last_event
+    name: "Battery Last Event"
+    lambda: |-
+      return {""};
+
+  - platform: template
+    id: battery_last_snapshot
+    name: "Battery Last Snapshot"
+    lambda: |-
+      return {""};
+
+  - platform: template
+    id: inverter_1_last_request
+    name: "Inverter 1 Last Request"
+    lambda: |-
+      return {""};
+
+  - platform: template
+    id: inverter_2_last_request
+    name: "Inverter 2 Last Request"
+    lambda: |-
+      return {""};
+
+  - platform: template
+    id: inverter_1_heartbeat
+    name: "Inverter 1 Heartbeat"
+    lambda: |-
+      return {""};
+
+  - platform: template
+    id: inverter_2_heartbeat
+    name: "Inverter 2 Heartbeat"
+    lambda: |-
+      return {""};
+
+# ---------------------------------------------------------------------------
+# The Home Assistant values in this example are derived from the live battery
+# cache populated by actual Pylontech traffic on the battery UART. We do not
+# synthesize battery requests just to fill HA values. The values you care about
+# are voltage, current, and charge/discharge state from the last valid battery
+# snapshot.
+# ---------------------------------------------------------------------------
+light:
+  - platform: esp32_rmt_led_strip
+    id: onboard_rgb_led
+    name: "Onboard RGB LED"
+    pin: GPIO48            # Change to GPIO38 if your board is version v1.1
+    num_leds: 1
+    channel_colors: GRB
+    chipset: WS2812
+    restore_mode: ALWAYS_OFF

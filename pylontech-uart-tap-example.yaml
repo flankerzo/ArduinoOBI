@@ -1,0 +1,72 @@
+# Diagnostic-only transparent bridge for one inverter and one battery.
+# It is separate from the dual-inverter router and must not be used with two
+# inverters attached. It preserves every byte in both directions.
+
+esphome:
+  name: pylontech-uart-tap
+  friendly_name: "Pylontech UART Tap"
+
+esp32:
+  board: esp32-s3-devkitc-1
+  framework:
+    type: esp-idf
+
+external_components:
+  - source:
+      type: local
+      path: ./components
+    components: [pylontech_uart_tap]
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  reboot_timeout: 0s
+
+api:
+
+ota:
+  - platform: esphome
+
+logger:
+  level: DEBUG
+
+# UART A connects only to the inverter's isolated RS485-to-UART module.
+# UART B connects only to the BMS's isolated RS485-to-UART module.
+uart:
+  - id: uart_inverter
+    tx_pin: GPIO41
+    rx_pin: GPIO42
+    baud_rate: 9600
+    rx_buffer_size: 256
+
+  - id: uart_battery
+    tx_pin: GPIO39
+    rx_pin: GPIO40
+    baud_rate: 9600
+    rx_buffer_size: 256
+
+pylontech_uart_tap:
+  - id: inverter_to_battery
+    uart_id: uart_inverter
+    peer_id: battery_to_inverter
+    tap_name: "inverter -> battery"
+    last_frame: inverter_to_battery_frame
+
+  - id: battery_to_inverter
+    uart_id: uart_battery
+    peer_id: inverter_to_battery
+    tap_name: "battery -> inverter"
+    last_frame: battery_to_inverter_frame
+
+text_sensor:
+  - platform: template
+    id: inverter_to_battery_frame
+    name: "Pylontech inverter to battery frame"
+    lambda: |-
+      return {""};
+
+  - platform: template
+    id: battery_to_inverter_frame
+    name: "Pylontech battery to inverter frame"
+    lambda: |-
+      return {""};
