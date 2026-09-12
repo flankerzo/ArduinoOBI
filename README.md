@@ -31,6 +31,10 @@ The custom component is under:
 - read-only publishes Pylontech V3.5 `61`/`63` replies to Home Assistant:
   pack voltage/current/SOC, SOH, cycles, min/max cell voltage, temperatures,
   and charge/discharge limits
+- decodes documented Pylontech command replies (`42`, `44`, `47`, `4F`, `51`,
+  `92`, `93`, and `96`) into the **Battery Last Decoded Reply** diagnostic
+  text sensor when an inverter requests one; variant/unknown replies are kept
+  as their CID-tagged raw INFO rather than guessed
 
 ## Recommended usage
 
@@ -44,6 +48,9 @@ This project is intentionally designed around raw Pylontech pass-through only.
 It does not speak JK Modbus or map JK Modbus registers.
 The observed Pylontech `61` reply provides aggregate min/max cell values, not
 individual readings for every battery cell.
+It does not inject its own polling requests. This means no additional traffic
+is added to the battery bus, while future inverters can still use any Pylontech
+command that the battery implements.
 
 ## Safety
 

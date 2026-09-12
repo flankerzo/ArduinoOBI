@@ -149,6 +149,7 @@ class PylontechDualProxy : public Component, public uart::UARTDevice {
   static std::string frame_cid2_(const std::string &frame);
   bool refresh_battery_snapshot_();
   bool update_snapshot_from_battery_frame_(const std::string &frame, const std::string &request_cid2);
+  void publish_decoded_response_(const std::string &request_cid2, const std::string &info);
   void read_inverter_requests_();
   void read_battery_frames_();
   void route_request_(const std::string &request);

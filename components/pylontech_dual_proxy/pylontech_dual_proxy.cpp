@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cctype>
 #include <cstdio>
+#include <sstream>
 
 #include "esphome/core/log.h"
 
@@ -74,6 +75,103 @@ static uint8_t hex_u8_(const std::string &value, size_t offset) {
 
 static float decikelvin_to_celsius_(uint16_t value) { return (static_cast<float>(value) - 2731.0f) / 10.0f; }
 
+static std::string ascii_from_hex_(const std::string &value, size_t offset, size_t byte_count) {
+  std::string result;
+  for (size_t i = 0; i < byte_count && offset + 2 <= value.size(); i++, offset += 2) {
+    const char c = static_cast<char>(hex_u8_(value, offset));
+    result += std::isprint(static_cast<unsigned char>(c)) ? c : '.';
+  }
+  return result;
+}
+
+void PylontechDualProxy::publish_decoded_response_(const std::string &request_cid2, const std::string &info) {
+  if (last_battery_snapshot_sensor_ == nullptr) return;
+
+  // The request CID2 identifies a normal reply (whose CID2 is always 00).
+  // This diagnostic text deliberately does not alter a routed byte.
+  std::ostringstream decoded;
+  decoded.setf(std::ios::fixed);
+  decoded.precision(3);
+  if (request_cid2 == "42" && info.size() >= 4) {
+    const uint8_t module = hex_u8_(info, 0);
+    const uint8_t cells = hex_u8_(info, 2);
+    size_t offset = 4 + static_cast<size_t>(cells) * 4;
+    if (cells > 16 || offset + 2 > info.size()) return;
+    const uint8_t temperatures = hex_u8_(info, offset);
+    offset += 2;
+    if (temperatures > 16 || offset + static_cast<size_t>(temperatures) * 4 + 12 > info.size()) return;
+    decoded << "CID42 module=" << static_cast<unsigned>(module) << " cells=" << static_cast<unsigned>(cells)
+            << " temperatures=" << static_cast<unsigned>(temperatures);
+    if (cells > 0) {
+      decoded << " cell1=" << static_cast<float>(hex_u16_(info, 4)) / 1000.0f << "V";
+    }
+    offset += static_cast<size_t>(temperatures) * 4;
+    const float current = static_cast<float>(hex_i16_(info, offset)) / 100.0f;
+    const float voltage = static_cast<float>(hex_u16_(info, offset + 4)) / 1000.0f;
+    const float remaining_ah = static_cast<float>(hex_u16_(info, offset + 8)) / 1000.0f;
+    decoded << " pack=" << voltage << "V current=" << current << "A remaining=" << remaining_ah << "Ah";
+  } else if (request_cid2 == "44" && info.size() >= 4) {
+    const uint8_t module = hex_u8_(info, 0);
+    const uint8_t cells = hex_u8_(info, 2);
+    size_t offset = 4 + cells * 2;
+    if (cells > 16 || offset + 2 > info.size()) return;
+    const uint8_t temperatures = hex_u8_(info, offset);
+    offset += 2 + temperatures * 2;
+    if (temperatures > 16 || offset + 16 > info.size()) return;
+    decoded << "CID44 module=" << static_cast<unsigned>(module) << " cells=" << static_cast<unsigned>(cells)
+            << " temperatures=" << static_cast<unsigned>(temperatures) << " warnings="
+            << info.substr(offset, 6) << " status=" << info.substr(offset + 6, 10);
+  } else if (request_cid2 == "47" && (info.size() == 48 || info.size() == 50)) {
+    // Older Pylontech replies contain DATAI only (48 ASCII chars); some
+    // variants prefix it with a one-byte INFOFLAG (50 ASCII chars).
+    const size_t offset = info.size() == 50 ? 2 : 0;
+    decoded << "CID47 cell-high=" << static_cast<float>(hex_u16_(info, offset)) / 1000.0f << "V"
+            << " cell-low=" << static_cast<float>(hex_u16_(info, offset + 4)) / 1000.0f << "V"
+            << " charge-temp=" << decikelvin_to_celsius_(hex_u16_(info, offset + 12)) << "C.."
+            << decikelvin_to_celsius_(hex_u16_(info, offset + 16)) << "C"
+            << " charge-limit=" << static_cast<float>(hex_i16_(info, offset + 20)) / 100.0f << "A"
+            << " module-high=" << static_cast<float>(hex_u16_(info, offset + 24)) / 1000.0f << "V"
+            << " discharge-limit=" << static_cast<float>(hex_i16_(info, offset + 44)) / 100.0f << "A";
+  } else if (request_cid2 == "92" && info.size() == 20) {
+    const uint8_t status = hex_u8_(info, 18);
+    decoded << "CID92 module=" << static_cast<unsigned>(hex_u8_(info, 0))
+            << " charge-max=" << static_cast<float>(hex_u16_(info, 2)) / 1000.0f << "V"
+            << " discharge-min=" << static_cast<float>(hex_u16_(info, 6)) / 1000.0f << "V"
+            << " charge-max=" << static_cast<float>(hex_i16_(info, 10)) / 10.0f << "A"
+            << " discharge-max=" << static_cast<float>(hex_i16_(info, 14)) / 10.0f << "A"
+            << " status=0x" << info.substr(18, 2)
+            << " charge=" << ((status & 0x80) ? "enabled" : "stop")
+            << " discharge=" << ((status & 0x40) ? "enabled" : "stop");
+  } else if (request_cid2 == "61" && info.size() == 98) {
+    decoded << "CID61 pack=" << static_cast<float>(hex_u16_(info, 0)) / 1000.0f << "V"
+            << " current=" << static_cast<float>(hex_i16_(info, 4)) / 100.0f << "A"
+            << " soc=" << static_cast<unsigned>(hex_u8_(info, 8)) << "%"
+            << " cycles=" << hex_u16_(info, 10)
+            << " soh=" << static_cast<unsigned>(hex_u8_(info, 18)) << "%";
+  } else if (request_cid2 == "63" && info.size() == 18) {
+    decoded << "CID63 charge-max=" << static_cast<float>(hex_u16_(info, 0)) / 1000.0f << "V"
+            << " discharge-min=" << static_cast<float>(hex_u16_(info, 4)) / 1000.0f << "V"
+            << " charge-max=" << static_cast<float>(hex_u16_(info, 8)) / 10.0f << "A"
+            << " discharge-max=" << static_cast<float>(hex_u16_(info, 12)) / 10.0f << "A";
+  } else if (request_cid2 == "4F") {
+    decoded << "CID4F protocol-version=" << ascii_from_hex_(info, 0, info.size() / 2);
+  } else if (request_cid2 == "51" && info.size() >= 64) {
+    decoded << "CID51 battery=" << ascii_from_hex_(info, 0, 10)
+            << " firmware=" << ascii_from_hex_(info, 20, 2)
+            << " manufacturer=" << ascii_from_hex_(info, 24, 20);
+  } else if (request_cid2 == "93" && info.size() >= 34) {
+    decoded << "CID93 module=" << static_cast<unsigned>(hex_u8_(info, 0))
+            << " serial=" << ascii_from_hex_(info, 2, 16);
+  } else if (request_cid2 == "62" || request_cid2 == "96") {
+    decoded << "CID" << request_cid2 << " raw-info=" << info;
+  } else {
+    // A V3.5 extension or an implementation-specific variant: retain it in
+    // HA with its request CID rather than making up a field layout.
+    decoded << "CID" << request_cid2 << " raw-info=" << info;
+  }
+  last_battery_snapshot_sensor_->publish_state(decoded.str());
+}
+
 bool PylontechDualProxy::update_snapshot_from_battery_frame_(const std::string &frame,
                                                               const std::string &request_cid2) {
   // A normal reply has CID2=00. LENID's low 12 bits are the ASCII INFO length;
@@ -84,6 +182,7 @@ bool PylontechDualProxy::update_snapshot_from_battery_frame_(const std::string &
   const size_t info_len = lenid & 0x0fff;
   if (info_len != frame.size() - 18) return false;
   const std::string info = frame.substr(13, info_len);
+  publish_decoded_response_(request_cid2, info);
 
   if (request_cid2 == "61" && info.size() == 98) {
     const float voltage = static_cast<float>(hex_u16_(info, 0)) / 1000.0f;

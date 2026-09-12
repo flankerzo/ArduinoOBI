@@ -100,6 +100,7 @@ pylontech_dual_proxy:
     battery_charging: battery_charging
     battery_discharging: battery_discharging
     last_battery_frame: battery_last_frame
+    last_battery_snapshot: battery_last_snapshot
 
   - id: pylontech_inv_1
     uart_id: uart_inv_1
@@ -320,7 +321,7 @@ text_sensor:
 
   - platform: template
     id: battery_last_snapshot
-    name: "Battery Last Snapshot"
+    name: "Battery Last Decoded Reply"
     update_interval: never
 
   - platform: template
