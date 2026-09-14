@@ -20,6 +20,10 @@ The custom component is under:
 
 - [components/pylontech_dual_proxy](components/pylontech_dual_proxy)
 
+## What it is for
+- you have two pv inverters (in single mode), but only one battery, both inverters cannot be connected to same battery.
+  Both are masters, with their identifiers, with this, you can connect 2pcs Pylontech compatible inverters to single battery.
+
 ## What this proxy does
 
 - accepts only checksum-valid Pylontech ASCII frames (`~...\r`)
@@ -54,7 +58,6 @@ The custom component is under:
 ## Notes
 
 This project is intentionally designed around raw Pylontech pass-through only.
-It does not speak JK Modbus or map JK Modbus registers.
 The router works locally without a Home Assistant/API connection; the example
 disables API-disconnect reboots so RS485 routing continues while HA is down.
 The observed Pylontech `61` reply provides aggregate min/max cell values, not
