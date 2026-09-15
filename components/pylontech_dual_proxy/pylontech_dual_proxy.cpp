@@ -334,7 +334,9 @@ void PylontechDualProxy::read_inverter_requests_() {
           continue;
         }
         mark_link_active_();
-        if (last_inverter_request_sensor_ != nullptr) last_inverter_request_sensor_->publish_state(request);
+        if (last_inverter_request_sensor_ != nullptr &&
+            (publish_raw_frames_switch_ == nullptr || publish_raw_frames_switch_->state))
+          last_inverter_request_sensor_->publish_state(request);
         log_raw_frame_("inverter->router", request);
         for (auto *instance : active_instances_) {
           if (instance != nullptr && instance->is_battery_port_) {

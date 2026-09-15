@@ -119,6 +119,7 @@ pylontech_dual_proxy:
     update_timeout: 60s
     link_timeout: 60s
     online: inverter_1_online
+    publish_raw_frames: publish_inverter_1_requests
     last_inverter_request: inverter_1_last_request
 
   - id: pylontech_inv_2
@@ -128,6 +129,7 @@ pylontech_dual_proxy:
     update_timeout: 60s
     link_timeout: 60s
     online: inverter_2_online
+    publish_raw_frames: publish_inverter_2_requests
     last_inverter_request: inverter_2_last_request
 
 # Turn these on in HA only when diagnostic text is needed.
@@ -142,6 +144,18 @@ switch:
   - platform: template
     id: publish_battery_decoded_replies
     name: "Publish Battery Decoded Replies"
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+
+  - platform: template
+    id: publish_inverter_1_requests
+    name: "Publish Inverter 1 Last Request"
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+
+  - platform: template
+    id: publish_inverter_2_requests
+    name: "Publish Inverter 2 Last Request"
     optimistic: true
     restore_mode: RESTORE_DEFAULT_OFF
 

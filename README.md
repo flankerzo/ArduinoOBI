@@ -24,6 +24,9 @@ The custom component is under:
 - you have two pv inverters (in single mode), but only one battery, both inverters cannot be connected to same battery.
   Both are masters, with their identifiers, with this, you can connect 2pcs Pylontech compatible inverters to single battery.
 
+## Hw used
+ESP32 S3 16R8 module, 3x waveshare RS485 isolated to uart. 
+
 ## What this proxy does
 
 - accepts only checksum-valid Pylontech ASCII frames (`~...\r`)
@@ -69,6 +72,17 @@ Decoded Reply**. Both default to off on first use and remember subsequent change
 Existing text/history may remain visible in HA; turning these off does not erase it.
 Normal battery sensors, UART forwarding, and console logging continue. Turn a
 switch back on to resume its text updates as eligible battery replies arrive.
+
+**Publish Inverter 1 Last Request** and **Publish Inverter 2 Last Request**
+independently control new updates to each inverter's Last Request text sensor.
+They also default to off and restore their saved setting after reboot. Each
+inverter instance uses its own `publish_raw_frames` switch; routing and logging
+continue regardless of the switch state. Configurations without this optional
+switch retain their previous publishing behavior.
+
+The inverter switches require the updated component in this repository. When
+using the GitHub source, publish the component change there before building,
+or use a local external component source pointing to `./components`.
 
 This project is intentionally designed around raw Pylontech pass-through only.
 The router works locally without a Home Assistant/API connection; the example
