@@ -28,8 +28,8 @@ The custom component is under:
 - returns a matched reply only to the inverter that requested it
 - forwards unmatched, valid battery frames to both inverter UARTs as unsolicited events
 - logs raw Pylontech frames for diagnostics
-- has HA switches for optional text diagnostics: raw frames are off by default;
-  decoded reply text is on by default and can be disabled independently
+- has independent HA switches for raw frames and decoded reply text;
+  both are off by default and restore their saved setting after reboot
 - exposes Battery, Inverter 1, and Inverter 2 connectivity binary sensors;
   each is online after a valid received frame and offline after its configured
   `link_timeout` (60 seconds in the example)
@@ -52,6 +52,19 @@ The custom component is under:
 3. Build and upload through Home Assistant / ESPHome Dashboard.
 
 ## Notes
+
+### Quiet battery diagnostics
+
+[pylontech-dual-proxy-example.yaml](pylontech-dual-proxy-example.yaml) contains the supplied working
+configuration with both diagnostic switches connected. It retains the GitHub
+component source, UART pins, API encryption secret reference, and other settings.
+
+In Home Assistant, turn off **Publish Battery Raw Frames** and **Publish Battery
+Decoded Replies** to stop new updates to **Battery Last Frame** and **Battery Last
+Decoded Reply**. Both default to off on first use and remember subsequent changes.
+Existing text/history may remain visible in HA; turning these off does not erase it.
+Normal battery sensors, UART forwarding, and console logging continue. Turn a
+switch back on to resume its text updates as eligible battery replies arrive.
 
 This project is intentionally designed around raw Pylontech pass-through only.
 It does not speak JK Modbus or map JK Modbus registers.

@@ -1,6 +1,12 @@
+# ============================================================
+# FULL JK-BMS TELEMETRY + DUAL PYLONTECH PROXY
+# Native syssi JK-BMS data is exposed for inspection. Only the
+# selected proxy values below are forwarded to the two inverters.
+# Charge/discharge voltage limits remain manual for now.
+# ============================================================
+
 esphome:
-  name: pylontech-dual-proxy
-  friendly_name: "Pylontech Dual Proxy"
+  name: jkbms-s3-dual-proxy
 
 esp32:
   board: esp32-s3-devkitc-1
@@ -8,45 +14,30 @@ esp32:
     type: esp-idf
 
 external_components:
-  # Use the local workspace version for active development and testing.
-  - source:
-      type: local
-      path: ./components
-    components:
-      - pylontech_dual_proxy
+  - source: github://flankerzo/pylontech-dual-router@main
 
-  # GitHub fallback only for release installs. Uncomment this block after
-  # pushing a tested revision to main; keep the local source above for VS Code
-  # development.
-  # - source: github://flankerzo/pylontech-dual-router@main
-  #   components: [pylontech_dual_proxy]
+    refresh: always
 
 wifi:
   ssid: !secret wifi_ssid
   password: !secret wifi_password
-  reboot_timeout: 0s
 
-# The RS485 proxy is fully local. Do not reboot merely because Home Assistant
-# is unavailable; UART routing and queued replies must continue offline.
+
+
 api:
-  reboot_timeout: 0s
+  encryption:
+    key: !secret jkbms_s3_dual_proxy__encryption_key
 
+
+  reboot_timeout: 0min
 ota:
   - platform: esphome
 
 logger:
   level: DEBUG
 
-# ---------------------------------------------------------------------------
-# UART layout
-# ---------------------------------------------------------------------------
-# uart_battery: real Pylontech battery RS485 bus
-# uart_inv_1: first inverter Pylontech master bus
-# uart_inv_2: second inverter Pylontech master bus
-#
-# This project intentionally speaks only the raw Pylontech protocol. The
-# battery and the inverters are expected to communicate on the Pylontech bus
-# only, with no JK-BMS or Modbus layer.
+# UART A connects only to the inverter's isolated RS485-to-UART module.
+# UART B connects only to the BMS's isolated RS485-to-UART module.
 uart:
   - id: uart_battery
     tx_pin: GPIO39
@@ -82,8 +73,6 @@ pylontech_dual_proxy:
     response_timeout: 1500ms
     link_timeout: 60s
     online: battery_online
-    publish_raw_frames: publish_battery_raw_frames
-    publish_decoded_replies: publish_battery_decoded_replies
     cache_ttl: 2500ms
     update_timeout: 60s
     state_of_charge: battery_soc
@@ -108,6 +97,8 @@ pylontech_dual_proxy:
     max_discharge_current: battery_max_discharge_current
     battery_charging: battery_charging
     battery_discharging: battery_discharging
+    publish_raw_frames: publish_battery_raw_frames
+    publish_decoded_replies: publish_battery_decoded_replies
     last_battery_frame: battery_last_frame
     last_battery_snapshot: battery_last_snapshot
     ha_update_interval: ha_update_interval
@@ -139,12 +130,9 @@ pylontech_dual_proxy:
     online: inverter_2_online
     last_inverter_request: inverter_2_last_request
 
-# Set these live from Home Assistant, in seconds. The global control applies to
-# all commands; per-command controls use -1 to inherit it. Zero means every
-# received response. Alarms CID44/CID62 are always immediate.
+# Turn these on in HA only when diagnostic text is needed.
+# Off stops new text publishes; normal telemetry and UART routing continue.
 switch:
-  # Text diagnostics only. These switches do not affect UART forwarding,
-  # battery communication, console logs, or normal HA sensor values.
   - platform: template
     id: publish_battery_raw_frames
     name: "Publish Battery Raw Frames"
@@ -155,8 +143,11 @@ switch:
     id: publish_battery_decoded_replies
     name: "Publish Battery Decoded Replies"
     optimistic: true
-    restore_mode: RESTORE_DEFAULT_ON
+    restore_mode: RESTORE_DEFAULT_OFF
 
+# Set these live from Home Assistant, in seconds. The global control applies to
+# all commands; per-command controls use -1 to inherit it. Zero means every
+# received response. Alarms CID44/CID62 are always immediate.
 number:
   - platform: template
     id: ha_update_interval
